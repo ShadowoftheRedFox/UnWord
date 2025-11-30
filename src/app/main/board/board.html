@@ -2,7 +2,7 @@
     @for (line of tries; track line) {
     <div class="flex flex-row gap-2 flex-nowrap">
         @for (char of wordLength; track char) {
-        <app-case [guess]="''" [reaveal]="false" [position]="char" />
+        <app-case [guess]="''" [reaveal]="false" [position]="char" [line]="line" />
         }
     </div>
     }

@@ -3,6 +3,20 @@ import { DOCUMENT, inject, Injectable } from '@angular/core';
 import { Subject } from 'rxjs';
 import { clamp, randomInt } from '../shared/utils';
 import { Guess } from '../models/guess';
+import { Case } from '../app/main/board/case/case';
+
+export interface GameRules {
+    /** Maximum number of tries per word. Default 6. */
+    maxTries: number,
+    /** Minimum length of the word. Default 4. Minimum 4. */
+    minLength: number,
+    /** Maximum length of the word. Default 50. Minimum 4. */
+    maxLength: number,
+    /** Whether or not to show in advance character that aren't alphanumerical, such as `'`, `-` or accents. */
+    normalizeAccents: boolean,
+    /** Whether or not to transform charcter with accent to it's basic form, such as `à` -> `a`. */
+    showNonAlphanumericCharacter: boolean,
+}
 
 @Injectable({
     providedIn: 'root',
@@ -13,14 +27,16 @@ export class Engine {
     /** Current document, do access local storage. */
     private readonly document = inject(DOCUMENT);
 
-    /** Key to save the word index. */
-    private readonly LOCAL_INDEX = "choosenWordIndex" as const;
-    /** Key to save played date. */
-    private readonly LOCAL_DATE = "choosenWordDate" as const;
-    /** Ratio from ms time to day time. */
-    private readonly MS_DAY_RATIO = 1000 * 3600 * 24;
-    /** The value of how different the next word index must be. */
-    private readonly NEXT_RND_INDEX = 300;
+    private readonly CONSTANTS = {
+        /** Key to save the word index. */
+        LOCAL_INDEX: "choosenWordIndex",
+        /** Key to save played date. */
+        LOCAL_DATE: "choosenWordDate",
+        /** Ratio from ms time to day time. */
+        MS_DAY_RATIO: 1000 * 3600 * 24,
+        /** The value of how different the next word index must be. */
+        NEXT_RND_INDEX: 300
+    } as const;
 
     /** Currently choosen word index. -1 is unset. */
     private choosenWordIndex = -1;
@@ -31,11 +47,75 @@ export class Engine {
 
     /** Obervable to send update when the word changes. */
     public wordUpdate = new Subject<number>();
+    /** Obervable to send update when the game rules change. */
+    public gamerulesUpdate = new Subject<GameRules>();
 
     /** Set of character composing the alphabet. */
     private alphabet = new Set<string>();
     /** List of current guess for each alphabet character. */
     public guesses: Map<string, Guess> = new Map<string, Guess>();
+
+    private gameCases: Map<number, Case> = new Map<number, Case>();
+
+    /**
+     * Manage cases for the game board.
+     */
+    public readonly cases = {
+        /**
+         * Add a case to the game board.
+         * @param c The case to set.
+         */
+        set: (c: Case): void => {
+            this.gameCases.set(c.line * this.word.length + c.position, c);
+        },
+        /**
+         * Get a specific case.
+         * @param line Line of the case.
+         * @param position Position in the line of the case.
+         * @returns A case if one is at the wanted position, undefined otehrwise.
+         */
+        get: (line: number, position: number): Case | undefined => {
+            if (line < 0 || line >= this.getGameRules().maxTries || position < 0 || position >= this.word.length) {
+                return undefined;
+            }
+            return this.gameCases.get(line * this.word.length + position);
+        },
+        /**
+         * Get all stored cases, sorted in order.
+         * @returns All the game board cases.
+         */
+        getAll: (): Case[] => {
+            return this.sortCases(Array.from(this.gameCases.values()));
+        },
+        /**
+         * Get the array of cases on the given game board line.
+         * @param line The line to filter from.
+         * @returns The sorted cases on the given line.
+         */
+        getLine: (line: number): Case[] | undefined => {
+            if (line < 0 || line >= this.getGameRules().maxTries) {
+                return undefined;
+            }
+            return this.sortCases(Array.from(this.gameCases.values()).filter(a => a.line === line));
+        }
+    }
+
+    /**
+     * Different rules for the game, that can be edited.
+     * @see gamerulesUpdate
+     */
+    private gamerules: GameRules = {
+        /** Maximum number of tries per word. */
+        maxTries: 6,
+        /** Minimum length of the word. */
+        minLength: 4,
+        /** Maximum length of the word. */
+        maxLength: 50,
+        /** Whether or not to show in advance character that aren't alphanumerical, such as `'`, `-` or accents. */
+        showNonAlphanumericCharacter: false,
+        /** Whether or not to transform charcter with accent to it's basic form, such as `à` -> `a`. */
+        normalizeAccents: false
+    }
 
     constructor() {
         // we must be able to access localstorage to save progress
@@ -43,13 +123,14 @@ export class Engine {
 
         // function to run when updating the word
         this.wordUpdate.subscribe(() => {
+            this.gameCases.clear();
             this.resetGuesses();
             this.updateLocalStorage();
         });
 
         /** Running a new word, or set the progress back. */
-        this.choosenWordIndex = Number(this.localStorage.getItem(this.LOCAL_INDEX) || -1);
-        const localDate = Number(this.localStorage.getItem(this.LOCAL_DATE) || this.choosenDate);
+        this.choosenWordIndex = Number(this.localStorage.getItem(this.CONSTANTS.LOCAL_INDEX) || -1);
+        const localDate = Number(this.localStorage.getItem(this.CONSTANTS.LOCAL_DATE) || this.choosenDate);
         this.getWords((words) => {
             // get alphabet from the dictionary
             words.forEach(w => {
@@ -129,8 +210,8 @@ export class Engine {
     private updateLocalStorage(): void {
         if (this.localStorage === undefined) return;
 
-        this.localStorage.setItem(this.LOCAL_INDEX, this.choosenWordIndex + "");
-        this.localStorage.setItem(this.LOCAL_DATE, this.getTodayDay() + "");
+        this.localStorage.setItem(this.CONSTANTS.LOCAL_INDEX, this.choosenWordIndex + "");
+        this.localStorage.setItem(this.CONSTANTS.LOCAL_DATE, this.getTodayDay() + "");
     }
 
     /**
@@ -163,8 +244,8 @@ export class Engine {
             // +- a number (we juste need to take into account the min and max index)
 
             const length = words.length - 1;
-            const minIndex = clamp(this.choosenWordIndex - this.NEXT_RND_INDEX, 0, length);
-            const maxIndex = clamp(this.choosenWordIndex + this.NEXT_RND_INDEX, 0, length);
+            const minIndex = clamp(this.choosenWordIndex - this.CONSTANTS.NEXT_RND_INDEX, 0, length);
+            const maxIndex = clamp(this.choosenWordIndex + this.CONSTANTS.NEXT_RND_INDEX, 0, length);
 
             let nextWordIndex = this.choosenWordIndex;
 
@@ -184,7 +265,16 @@ export class Engine {
      * @returns The amount of day since midnight, January 1st 1970 UTC.
      */
     private getTodayDay(): number {
-        return Math.floor(new Date().getTime() / this.MS_DAY_RATIO);
+        return Math.floor(new Date().getTime() / this.CONSTANTS.MS_DAY_RATIO);
+    }
+
+    /**
+     * Sort the given array depending on the line and position of the cases.
+     * @param arr An array of cases.
+     * @returns The cases in the array, sorted.
+     */
+    private sortCases(arr: Case[]): Case[] {
+        return arr.sort((a, b) => (a.line * this.word.length + a.position) - (b.line * this.word.length + b.position));
     }
 
     /**
@@ -199,5 +289,58 @@ export class Engine {
      */
     public get word() {
         return this.choosenWord;
+    }
+
+    /**
+     * Get the game rules.
+     */
+    public getGameRules(): GameRules {
+        return Object.freeze(this.gamerules);
+    }
+
+    /**
+     * Change a rule of the game.
+     * @param rule The rule to set.
+     * @param value The value to set this specific rule to.
+     * @returns True if the change has been made, false if the change has been ignored.
+     */
+    public setGameRules<R extends keyof GameRules>(rule: R, value: GameRules[R]): boolean {
+        const vnum = value as number;
+        let res = false;
+
+        switch (rule) {
+            case "maxTries":
+                if (value as number >= 1) {
+                    this.gamerules.maxTries = value as number;
+                    res = true;
+                }
+                break;
+            case "maxLength":
+                if (vnum >= 4 && vnum >= this.gamerules.minLength) {
+                    this.gamerules.maxTries = value as number;
+                    res = true;
+                }
+                break;
+            case "minLength":
+                if (vnum >= 4 && vnum <= this.gamerules.maxLength) {
+                    this.gamerules.maxTries = value as number;
+                    res = true;
+                }
+                break;
+            case "normalizeAccents":
+                this.gamerules.normalizeAccents = value as boolean;
+                res = true;
+                break;
+            case "showNonAlphanumericCharacter":
+                this.gamerules.showNonAlphanumericCharacter = value as boolean;
+                res = true;
+                break;
+        }
+
+        if (res) {
+            this.gamerulesUpdate.next(this.getGameRules());
+        }
+
+        return res;
     }
 }

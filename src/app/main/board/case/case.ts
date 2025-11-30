@@ -1,4 +1,4 @@
-import { Component, computed, inject, Input } from '@angular/core';
+import { Component, computed, inject, Input, OnInit } from '@angular/core';
 import { Engine } from '../../../../services/engine';
 
 @Component({
@@ -7,13 +7,18 @@ import { Engine } from '../../../../services/engine';
     templateUrl: './case.html',
     styleUrl: './case.css',
 })
-export class Case {
+export class Case implements OnInit {
     @Input() active = false;
     @Input({ required: true }) reaveal = false;
     @Input({ required: true, transform: (v: string) => { return v.length > 0 ? v[0] : " "; } }) guess = " ";
     @Input({ required: true }) position = -1;
+    @Input({ required: true }) line = -1;
 
     private readonly engine = inject(Engine);
+
+    ngOnInit(): void {
+        this.engine.cases.set(this);
+    }
 
     public caseClass = computed<string>(() => {
         const res = ["case"];

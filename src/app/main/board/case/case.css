@@ -11,6 +11,11 @@
     align-items: center;
 
     font-size: 40px;
+    font-weight: bold;
+    text-transform: capitalize;
+
+    cursor: default;
+    user-select: none;
 }
 
 .active {}
