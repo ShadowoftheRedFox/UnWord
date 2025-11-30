@@ -1,2 +1,10 @@
-<p>Word of the day is: {{word}}</p>
-<button (click)="next()">next word</button>
+<div class="h-full w-full flex flex-col">
+    <div class="mx-auto">
+        <p>Word of the day is: {{word}}</p>
+        <button mat-flat-button (click)="next()">next word</button>
+    </div>
+
+    <div class="mx-auto">
+        <app-game-board />
+    </div>
+</div>

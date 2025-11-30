@@ -1,0 +1,28 @@
+.case {
+    --size: 60px;
+    width: var(--size);
+    height: var(--size);
+    border-radius: 5px;
+    border: 1px solid #00000080;
+
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: center;
+    align-items: center;
+
+    font-size: 40px;
+}
+
+.active {}
+
+.inactive {}
+
+.not-included {}
+
+.unique-correct {}
+
+.multiple-correct {}
+
+.unique-incorrect {}
+
+.multiple-incorrect {}

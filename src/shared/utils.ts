@@ -25,3 +25,16 @@ export const random = (max: number) => {
 export const randomInt = (max: number) => {
     return Math.floor(random(max));
 }
+
+/**
+ * Create a filled array of number.
+ * @param length The length of the wanted array
+ * @returns An array filled with number corresponding to it's index.
+ */
+export const prefilledArray = (length: number) => {
+    const res: number[] = [];
+    for (let index = 0; index < length; index++) {
+        res.push(index);
+    }
+    return res;
+}
