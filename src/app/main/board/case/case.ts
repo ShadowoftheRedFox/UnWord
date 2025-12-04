@@ -1,4 +1,4 @@
-import { Component, computed, inject, Input, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, inject, Input, OnInit } from '@angular/core';
 import { Engine } from '../../../../services/engine';
 
 @Component({
@@ -9,25 +9,58 @@ import { Engine } from '../../../../services/engine';
 })
 export class Case implements OnInit {
     @Input() active = false;
-    @Input({ required: true }) reaveal = false;
-    @Input({ required: true, transform: (v: string) => { return v.length > 0 ? v[0] : " "; } }) guess = " ";
+    @Input({ required: true }) revealed = false;
     @Input({ required: true }) position = -1;
     @Input({ required: true }) line = -1;
+    @Input({ transform: (v: string | undefined) => (v !== undefined && v.length > 0) ? v[0] : " " }) guess = " ";
+
+    private readonly ref = inject(ChangeDetectorRef);
 
     private readonly engine = inject(Engine);
 
-    ngOnInit(): void {
-        this.engine.cases.set(this);
+    constructor() {
+        this.engine.wordUpdate.subscribe(() => {
+            this.reset();
+            this.ready();
+        })
     }
 
-    public caseClass = computed<string>(() => {
+    ngOnInit(): void {
+        this.ready();
+    }
+
+    private reset() {
+        this.active = false;
+        this.revealed = false;
+        this.guess = " ";
+    }
+
+    private ready() {
+        this.engine.cases.set(this);
+        if (this.engine.getGameRules().showNonAlphanumericCharacter &&
+            /^[a-z]+$/i.test(this.engine.word[this.position])) {
+            this.reveal();
+        }
+    }
+
+    public reveal() {
+        this.revealed = true;
+        this.ref.detectChanges();
+    }
+
+    public activate() {
+        this.active = true;
+        this.ref.detectChanges();
+    }
+
+    public caseClass = () => {
         const res = ["case"];
 
         res.push(this.active ? "active" : "inactive");
 
         if (this.guess == null) {
             res.push("empty");
-        } else if (this.reaveal) {
+        } else if (this.revealed) {
             const w = this.engine.word;
             // compare the guess to the word
             if (w.includes(this.guess)) {
@@ -40,6 +73,7 @@ export class Case implements OnInit {
                     // green
                     res.push(prefix + "correct");
                 } else {
+                    // TODO mark incorrect for the first one if unique
                     // yellow-orange
                     res.push(prefix + "incorrect");
                 }
@@ -50,5 +84,5 @@ export class Case implements OnInit {
         }
 
         return res.join(" ");
-    });
+    };
 }

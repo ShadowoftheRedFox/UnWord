@@ -1,7 +1,7 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { DOCUMENT, inject, Injectable } from '@angular/core';
 import { Subject } from 'rxjs';
-import { clamp, randomInt } from '../shared/utils';
+import { clamp, inbound, randomInt } from '../shared/utils';
 import { Guess } from '../models/guess';
 import { Case } from '../app/main/board/case/case';
 
@@ -46,12 +46,14 @@ export class Engine {
     private choosenDate = this.getTodayDay();
 
     /** Obervable to send update when the word changes. */
-    public wordUpdate = new Subject<number>();
+    public wordUpdate = new Subject<{ index: number, word: string }>();
     /** Obervable to send update when the game rules change. */
     public gamerulesUpdate = new Subject<GameRules>();
+    /** Obervable to send update when the game is ready to start. */
+    public gameReady = new Subject<boolean>();
 
     /** Set of character composing the alphabet. */
-    private alphabet = new Set<string>();
+    public readonly alphabet = new Set<string>();
     /** List of current guess for each alphabet character. */
     public guesses: Map<string, Guess> = new Map<string, Guess>();
 
@@ -67,6 +69,9 @@ export class Engine {
          */
         set: (c: Case): void => {
             this.gameCases.set(c.line * this.word.length + c.position, c);
+            if (this.cases.getAll().length == this.word.length * this.getGameRules().maxTries) {
+                this.gameReady.next(true);
+            }
         },
         /**
          * Get a specific case.
@@ -97,7 +102,23 @@ export class Engine {
                 return undefined;
             }
             return this.sortCases(Array.from(this.gameCases.values()).filter(a => a.line === line));
-        }
+        },
+        activateLine: (line: number): void => {
+            const cases = this.cases.getLine(line);
+            if (cases === undefined) { return; }
+
+            cases.forEach(c => {
+                c.activate();
+            });
+        },
+        revealLine: (line: number): void => {
+            const cases = this.cases.getLine(line);
+            if (cases === undefined) { return; }
+
+            cases.forEach(c => {
+                c.reveal();
+            });
+        },
     }
 
     /**
@@ -110,11 +131,11 @@ export class Engine {
         /** Minimum length of the word. */
         minLength: 4,
         /** Maximum length of the word. */
-        maxLength: 50,
+        maxLength: 8,
         /** Whether or not to show in advance character that aren't alphanumerical, such as `'`, `-` or accents. */
         showNonAlphanumericCharacter: false,
         /** Whether or not to transform charcter with accent to it's basic form, such as `à` -> `a`. */
-        normalizeAccents: false
+        normalizeAccents: true
     }
 
     constructor() {
@@ -126,6 +147,7 @@ export class Engine {
             this.gameCases.clear();
             this.resetGuesses();
             this.updateLocalStorage();
+            console.log(this.word);
         });
 
         /** Running a new word, or set the progress back. */
@@ -141,13 +163,11 @@ export class Engine {
 
             // update daily word
             if (this.choosenWordIndex === -1 || this.choosenDate != localDate) {
-                this.choosenWordIndex = randomInt(words.length);
-                this.choosenWord = words[this.choosenWordIndex];
-                this.wordUpdate.next(this.choosenWordIndex);
+                this.nextWord();
             } else {
                 // set progress back
-                this.choosenWord = words[this.choosenWordIndex];
-                this.wordUpdate.next(this.choosenWordIndex);
+                this.choosenWord = this.applyGamerules(words[this.choosenWordIndex]);
+                this.wordUpdate.next({ index: this.choosenWordIndex, word: this.choosenWord });
             }
         });
     }
@@ -247,17 +267,38 @@ export class Engine {
             const minIndex = clamp(this.choosenWordIndex - this.CONSTANTS.NEXT_RND_INDEX, 0, length);
             const maxIndex = clamp(this.choosenWordIndex + this.CONSTANTS.NEXT_RND_INDEX, 0, length);
 
-            let nextWordIndex = this.choosenWordIndex;
+            console.warn(this.choosenWordIndex);
 
-            while (minIndex <= nextWordIndex && nextWordIndex <= maxIndex) {
-                nextWordIndex = randomInt(words.length);
+            let nextWordIndex = randomInt(length);
+
+            while (
+                inbound(nextWordIndex, minIndex, maxIndex) ||
+                words[nextWordIndex].length < this.getGameRules().minLength ||
+                words[nextWordIndex].length > this.getGameRules().maxLength
+            ) {
+                nextWordIndex = randomInt(length);
             }
 
             // update everything and send the updates
             this.choosenWordIndex = nextWordIndex;
-            this.choosenWord = words[this.choosenWordIndex];
-            this.wordUpdate.next(this.choosenWordIndex);
+            this.choosenWord = this.applyGamerules(words[this.choosenWordIndex]);
+            this.wordUpdate.next({ index: this.choosenWordIndex, word: this.choosenWord });
         });
+    }
+
+    /**
+     * Apply the rules to the word, such as removing accents.
+     * @param word The chosen word.
+     * @returns The transformed word.
+     */
+    private applyGamerules(word: string): string {
+        const gamerules = this.getGameRules();
+
+        if (gamerules.normalizeAccents) {
+            word = word.normalize("NFD").replace(/\p{Diacritic}/gu, "");
+        }
+
+        return word;
     }
 
     /**

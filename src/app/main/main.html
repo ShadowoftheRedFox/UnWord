@@ -1,10 +1,12 @@
-<div class="h-full w-full flex flex-col">
-    <div class="mx-auto">
-        <p>Word of the day is: {{word}}</p>
-        <button mat-flat-button (click)="next()">next word</button>
-    </div>
+<div class="h-full w-full flex flex-col p-4">
+    <!-- <app-settings class="settings"></app-settings> -->
 
     <div class="mx-auto">
         <app-game-board />
+    </div>
+
+    <div class="mx-auto m-4">
+        <!-- <p>Word of the day is: {{word}}</p> -->
+        <button matFab extended="" (click)="next()"><mat-icon>skip_next</mat-icon>Next word</button>
     </div>
 </div>

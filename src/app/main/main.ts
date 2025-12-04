@@ -4,6 +4,7 @@ import { MatFormFieldModule } from "@angular/material/form-field"
 import { MatButtonModule } from "@angular/material/button";
 import { MatIconModule } from "@angular/material/icon";
 import { Board } from "./board/board";
+import { Settings } from "../settings/settings";
 
 @Component({
     selector: 'app-menu-main',
@@ -11,7 +12,8 @@ import { Board } from "./board/board";
         MatFormFieldModule,
         MatButtonModule,
         MatIconModule,
-        Board
+        Board,
+        Settings
     ],
     templateUrl: './main.html',
     styleUrl: './main.css',

@@ -38,3 +38,32 @@ export const prefilledArray = (length: number) => {
     }
     return res;
 }
+
+/**
+ * Replace a part inside a string by another string.
+ * If the index is negative, or greater than the string length, does nothing.
+ * @param string The string to edit.
+ * @param index The index of the modification.
+ * @param replacement The replacement string.
+ * @returns The edited string.
+ */
+export const replaceAt = (string: string, index: number, replacement: string) => {
+    if (index < 0 || index >= string.length) { return string; }
+    return string.substring(0, index) + replacement + string.substring(index + replacement.length);
+}
+
+/**
+ * Check if the value is between the boundary, included.
+ * @param x The value to check.
+ * @param min The minimum value.
+ * @param max The maximum value.
+ * @returns True if x in inside the boundary.
+ */
+export const inbound = (x: number, min: number, max: number): boolean => {
+    if (max < min) {
+        const temp = max;
+        max = min;
+        min = temp;
+    }
+    return x >= min && x <= max;
+}

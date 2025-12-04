@@ -3,7 +3,6 @@
     width: var(--size);
     height: var(--size);
     border-radius: 5px;
-    border: 1px solid #00000080;
 
     display: flex;
     flex-wrap: nowrap;
@@ -18,16 +17,34 @@
     user-select: none;
 }
 
-.active {}
+.active {
+    background-color: #80808070;
+    color: white;
+}
 
-.inactive {}
+.inactive {
+    border: 1px solid #00000080;
+    padding: 4px;
+}
 
-.not-included {}
+.not-included {
+    background-color: #808080;
+}
 
-.unique-correct {}
+.unique-correct {
+    background-color: green;
+}
 
-.multiple-correct {}
+.multiple-correct {
+    background-color: green;
+    border: 5px solid purple;
+}
 
-.unique-incorrect {}
+.unique-incorrect {
+    background-color: orange;
+}
 
-.multiple-incorrect {}
+.multiple-incorrect {
+    background-color: orange;
+    border: 5px solid purple;
+}

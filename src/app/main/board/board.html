@@ -1,8 +1,8 @@
 <div class="flex flex-col gap-2 flex-nowrap">
     @for (line of tries; track line) {
     <div class="flex flex-row gap-2 flex-nowrap">
-        @for (char of wordLength; track char) {
-        <app-case [guess]="''" [reaveal]="false" [position]="char" [line]="line" />
+        @for (position of wordLength; track position) {
+        <app-case [guess]="casesGuesses(line, position)" [revealed]="false" [position]="position" [line]="line" />
         }
     </div>
     }
