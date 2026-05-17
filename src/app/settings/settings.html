@@ -1,17 +1,35 @@
-<div>
-    <p>Changer les règles!</p>
-    <mat-form-field>
-        <mat-label>Nombre de lettres minimum</mat-label>
-        <input matInput type="number">
-    </mat-form-field>
-    <mat-form-field>
-        <mat-label>Nombre de lettres maximum</mat-label>
-        <input matInput type="number">
-    </mat-form-field>
-    <mat-form-field>
-        <mat-label>Nombre d'essais maximum</mat-label>
-        <input matInput type="number">
-    </mat-form-field>
-    <mat-checkbox>Révéler les caractères spéciaux</mat-checkbox>
-    <mat-checkbox>Remplacer les accents</mat-checkbox>
-</div>
+<mat-accordion>
+    <mat-expansion-panel>
+        <mat-expansion-panel-header>
+            <mat-panel-title>Settings</mat-panel-title>
+        </mat-expansion-panel-header>
+        <div class="flex flex-col">
+            <p>Changer les règles!</p>
+            <mat-form-field>
+                <mat-label>Nombre de lettres minimum</mat-label>
+                <input matInput type="number" [formControl]="minLength" [min]="CONST.MIN_LENGTH" />
+                @if (minLength.invalid) {
+                <mat-error>La valeur minimum est {{CONST.MIN_LENGTH}}</mat-error>
+                }
+            </mat-form-field>
+            <mat-form-field>
+                <mat-label>Nombre de lettres maximum</mat-label>
+                <input matInput type="number" [formControl]="maxLength" [min]="CONST.MIN_LENGTH" />
+                @if (maxLength.invalid) {
+                <mat-error>La valeur minimum est {{CONST.MIN_LENGTH}}</mat-error>
+                }
+            </mat-form-field>
+            <mat-form-field>
+                <mat-label>Nombre d'essais maximum</mat-label>
+                <input matInput type="number" [formControl]="maxTries" [min]="CONST.MIN_LENGTH" />
+                @if (maxTries.invalid) {
+                <mat-error>La valeur minimum est {{CONST.MIN_LENGTH}}</mat-error>
+                }
+            </mat-form-field>
+            <mat-checkbox [checked]="showSpecial" (change)="changeShowSpecial($event.checked)">Révéler les caractères
+                spéciaux</mat-checkbox>
+            <mat-checkbox [checked]="replaceSpecial" (change)="replaceShowSpecial($event.checked)">Remplacer les
+                accents</mat-checkbox>
+        </div>
+    </mat-expansion-panel>
+</mat-accordion>

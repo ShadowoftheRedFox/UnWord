@@ -1,15 +1,13 @@
-import { Component, HostListener, inject } from '@angular/core';
-import { Engine } from '../../../services/engine';
-import { prefilledArray } from '../../../shared/utils';
-import { Case } from './case/case';
+import { Component, HostListener, inject } from "@angular/core";
+import { Engine } from "../../../services/engine";
+import { prefilledArray } from "../../../shared/utils";
+import { Case } from "./case/case";
 
 @Component({
-    selector: 'app-game-board',
-    imports: [
-        Case
-    ],
-    templateUrl: './board.html',
-    styleUrl: './board.css',
+    selector: "app-game-board",
+    imports: [Case],
+    templateUrl: "./board.html",
+    styleUrl: "./board.css",
 })
 export class Board {
     private readonly engine = inject(Engine);
@@ -47,17 +45,28 @@ export class Board {
         return prefilledArray(this.word.length);
     }
 
-    public casesGuesses(line: number, position: number) {
+    public casesGuesses(line: number, position: number): string {
+        if (this.guessses.length - 1 < line || this.guessses[line].length - 1 < position)
+            return " ";
         return this.guessses[line][position] || " ";
-    };
+    }
 
-    @HostListener('window:keyup', ['$event'])
+    @HostListener("window:keyup", ["$event"])
     onKeyUp(event: KeyboardEvent) {
-        if (this.guessMade >= this.engine.getGameRules().maxTries) { return; }
+        if (this.guessMade >= this.engine.getGameRules().maxTries) {
+            return;
+        }
 
         const key = event.key.toLowerCase();
-        if (key === "delete" || key == "backspace" || key === "eraseeof" && this.guessPosition > 0) {
-            this.guessses[this.guessMade] = this.guessses[this.guessMade].substring(0, this.guessPosition - 1);
+        if (
+            key === "delete" ||
+            key == "backspace" ||
+            (key === "eraseeof" && this.guessPosition > 0)
+        ) {
+            this.guessses[this.guessMade] = this.guessses[this.guessMade].substring(
+                0,
+                this.guessPosition - 1,
+            );
             this.guessPosition--;
             event.preventDefault();
         } else if (key === "enter") {
@@ -69,7 +78,11 @@ export class Board {
                 this.engine.cases.activateLine(this.guessMade);
                 event.preventDefault();
             }
-        } else if (this.guessPosition < this.word.length && key.length === 1 && this.engine.alphabet.has(key.toLowerCase())) {
+        } else if (
+            this.guessPosition < this.word.length &&
+            key.length === 1 &&
+            this.engine.alphabet.has(key.toLowerCase())
+        ) {
             this.guessses[this.guessMade] = this.guessses[this.guessMade] + key;
             this.guessPosition++;
             event.preventDefault();

@@ -1,25 +1,25 @@
-import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { DOCUMENT, inject, Injectable } from '@angular/core';
-import { Subject } from 'rxjs';
-import { clamp, inbound, randomInt } from '../shared/utils';
-import { Guess } from '../models/guess';
-import { Case } from '../app/main/board/case/case';
+import { HttpClient, HttpHeaders } from "@angular/common/http";
+import { DOCUMENT, inject, Injectable } from "@angular/core";
+import { Subject } from "rxjs";
+import { clamp, inbound, randomInt } from "../shared/utils";
+import { Guess } from "../models/guess";
+import { Case } from "../app/main/board/case/case";
 
 export interface GameRules {
     /** Maximum number of tries per word. Default 6. */
-    maxTries: number,
+    maxTries: number;
     /** Minimum length of the word. Default 4. Minimum 4. */
-    minLength: number,
+    minLength: number;
     /** Maximum length of the word. Default 50. Minimum 4. */
-    maxLength: number,
+    maxLength: number;
     /** Whether or not to show in advance character that aren't alphanumerical, such as `'`, `-` or accents. */
-    normalizeAccents: boolean,
+    normalizeAccents: boolean;
     /** Whether or not to transform charcter with accent to it's basic form, such as `à` -> `a`. */
-    showNonAlphanumericCharacter: boolean,
+    showNonAlphanumericCharacter: boolean;
 }
 
 @Injectable({
-    providedIn: 'root',
+    providedIn: "root",
 })
 export class Engine {
     /** Used to make http requests. */
@@ -35,7 +35,7 @@ export class Engine {
         /** Ratio from ms time to day time. */
         MS_DAY_RATIO: 1000 * 3600 * 24,
         /** The value of how different the next word index must be. */
-        NEXT_RND_INDEX: 300
+        NEXT_RND_INDEX: 300,
     } as const;
 
     /** Currently choosen word index. -1 is unset. */
@@ -46,7 +46,7 @@ export class Engine {
     private choosenDate = this.getTodayDay();
 
     /** Obervable to send update when the word changes. */
-    public wordUpdate = new Subject<{ index: number, word: string }>();
+    public wordUpdate = new Subject<{ index: number; word: string }>();
     /** Obervable to send update when the game rules change. */
     public gamerulesUpdate = new Subject<GameRules>();
     /** Obervable to send update when the game is ready to start. */
@@ -80,7 +80,12 @@ export class Engine {
          * @returns A case if one is at the wanted position, undefined otehrwise.
          */
         get: (line: number, position: number): Case | undefined => {
-            if (line < 0 || line >= this.getGameRules().maxTries || position < 0 || position >= this.word.length) {
+            if (
+                line < 0 ||
+                line >= this.getGameRules().maxTries ||
+                position < 0 ||
+                position >= this.word.length
+            ) {
                 return undefined;
             }
             return this.gameCases.get(line * this.word.length + position);
@@ -101,25 +106,31 @@ export class Engine {
             if (line < 0 || line >= this.getGameRules().maxTries) {
                 return undefined;
             }
-            return this.sortCases(Array.from(this.gameCases.values()).filter(a => a.line === line));
+            return this.sortCases(
+                Array.from(this.gameCases.values()).filter((a) => a.line === line),
+            );
         },
         activateLine: (line: number): void => {
             const cases = this.cases.getLine(line);
-            if (cases === undefined) { return; }
+            if (cases === undefined) {
+                return;
+            }
 
-            cases.forEach(c => {
+            cases.forEach((c) => {
                 c.activate();
             });
         },
         revealLine: (line: number): void => {
             const cases = this.cases.getLine(line);
-            if (cases === undefined) { return; }
+            if (cases === undefined) {
+                return;
+            }
 
-            cases.forEach(c => {
+            cases.forEach((c) => {
                 c.reveal();
             });
         },
-    }
+    };
 
     /**
      * Different rules for the game, that can be edited.
@@ -135,8 +146,8 @@ export class Engine {
         /** Whether or not to show in advance character that aren't alphanumerical, such as `'`, `-` or accents. */
         showNonAlphanumericCharacter: false,
         /** Whether or not to transform charcter with accent to it's basic form, such as `à` -> `a`. */
-        normalizeAccents: true
-    }
+        normalizeAccents: true,
+    };
 
     constructor() {
         // we must be able to access localstorage to save progress
@@ -152,11 +163,13 @@ export class Engine {
 
         /** Running a new word, or set the progress back. */
         this.choosenWordIndex = Number(this.localStorage.getItem(this.CONSTANTS.LOCAL_INDEX) || -1);
-        const localDate = Number(this.localStorage.getItem(this.CONSTANTS.LOCAL_DATE) || this.choosenDate);
+        const localDate = Number(
+            this.localStorage.getItem(this.CONSTANTS.LOCAL_DATE) || this.choosenDate,
+        );
         this.getWords((words) => {
             // get alphabet from the dictionary
-            words.forEach(w => {
-                w.split("").forEach(l => {
+            words.forEach((w) => {
+                w.split("").forEach((l) => {
                     this.alphabet.add(l.toLowerCase());
                 });
             });
@@ -239,19 +252,21 @@ export class Engine {
      * @param callback A function to run when words have been fetched. Won't be called if the fetch fails.
      */
     private getWords(callback: (words: string[]) => unknown): void {
-        // get dictionnary
-        this.http.get("/dictionary/french.csv", {
-            headers: new HttpHeaders({}),
-            responseType: 'text'
-        }).subscribe({
-            next: (res) => {
-                const words = res.split("\n");
-                callback(words);
-            },
-            error: () => {
-                console.error("Could not get API list of words");
-            }
-        });
+        // get dictionary
+        this.http
+            .get(window.location.href + "dictionary/french.csv", {
+                headers: new HttpHeaders({}),
+                responseType: "text",
+            })
+            .subscribe({
+                next: (res) => {
+                    const words = res.split("\n");
+                    callback(words);
+                },
+                error: () => {
+                    console.error("Could not get API list of words");
+                },
+            });
     }
 
     /**
@@ -264,8 +279,16 @@ export class Engine {
             // +- a number (we juste need to take into account the min and max index)
 
             const length = words.length - 1;
-            const minIndex = clamp(this.choosenWordIndex - this.CONSTANTS.NEXT_RND_INDEX, 0, length);
-            const maxIndex = clamp(this.choosenWordIndex + this.CONSTANTS.NEXT_RND_INDEX, 0, length);
+            const minIndex = clamp(
+                this.choosenWordIndex - this.CONSTANTS.NEXT_RND_INDEX,
+                0,
+                length,
+            );
+            const maxIndex = clamp(
+                this.choosenWordIndex + this.CONSTANTS.NEXT_RND_INDEX,
+                0,
+                length,
+            );
 
             console.warn(this.choosenWordIndex);
 
@@ -315,7 +338,10 @@ export class Engine {
      * @returns The cases in the array, sorted.
      */
     private sortCases(arr: Case[]): Case[] {
-        return arr.sort((a, b) => (a.line * this.word.length + a.position) - (b.line * this.word.length + b.position));
+        return arr.sort(
+            (a, b) =>
+                a.line * this.word.length + a.position - (b.line * this.word.length + b.position),
+        );
     }
 
     /**
@@ -335,8 +361,8 @@ export class Engine {
     /**
      * Get the game rules.
      */
-    public getGameRules(): GameRules {
-        return Object.freeze(this.gamerules);
+    public getGameRules(): Readonly<GameRules> {
+        return Object.freeze(structuredClone(this.gamerules));
     }
 
     /**
@@ -347,41 +373,42 @@ export class Engine {
      */
     public setGameRules<R extends keyof GameRules>(rule: R, value: GameRules[R]): boolean {
         const vnum = value as number;
-        let res = false;
+        let changes = false;
 
         switch (rule) {
             case "maxTries":
-                if (value as number >= 1) {
+                if ((value as number) >= 1) {
                     this.gamerules.maxTries = value as number;
-                    res = true;
+                    changes = true;
                 }
                 break;
             case "maxLength":
                 if (vnum >= 4 && vnum >= this.gamerules.minLength) {
                     this.gamerules.maxTries = value as number;
-                    res = true;
+                    changes = true;
                 }
                 break;
             case "minLength":
                 if (vnum >= 4 && vnum <= this.gamerules.maxLength) {
                     this.gamerules.maxTries = value as number;
-                    res = true;
+                    changes = true;
                 }
                 break;
             case "normalizeAccents":
                 this.gamerules.normalizeAccents = value as boolean;
-                res = true;
+                changes = true;
                 break;
             case "showNonAlphanumericCharacter":
                 this.gamerules.showNonAlphanumericCharacter = value as boolean;
-                res = true;
+                changes = true;
                 break;
         }
 
-        if (res) {
+        if (changes) {
             this.gamerulesUpdate.next(this.getGameRules());
+            this.nextWord();
         }
 
-        return res;
+        return changes;
     }
 }

@@ -1,28 +1,32 @@
-import { ChangeDetectorRef, Component, inject, Input, OnInit } from '@angular/core';
-import { Engine } from '../../../../services/engine';
+import { ChangeDetectorRef, Component, inject, Input, OnInit } from "@angular/core";
+import { Engine } from "../../../../services/engine";
 
 @Component({
-    selector: 'app-case',
+    selector: "app-case",
     imports: [],
-    templateUrl: './case.html',
-    styleUrl: './case.css',
+    templateUrl: "./case.html",
+    styleUrl: "./case.css",
 })
 export class Case implements OnInit {
     @Input() active = false;
     @Input({ required: true }) revealed = false;
     @Input({ required: true }) position = -1;
     @Input({ required: true }) line = -1;
-    @Input({ transform: (v: string | undefined) => (v !== undefined && v.length > 0) ? v[0] : " " }) guess = " ";
+    @Input({
+        transform: (v: string | undefined) => {
+            return v !== undefined && v.length > 0 ? v[0] : " ";
+        },
+    })
+    guess = " ";
 
-    private readonly ref = inject(ChangeDetectorRef);
-
-    private readonly engine = inject(Engine);
-
-    constructor() {
+    constructor(
+        private engine: Engine,
+        private ref: ChangeDetectorRef,
+    ) {
         this.engine.wordUpdate.subscribe(() => {
             this.reset();
             this.ready();
-        })
+        });
     }
 
     ngOnInit(): void {
@@ -37,8 +41,10 @@ export class Case implements OnInit {
 
     private ready() {
         this.engine.cases.set(this);
-        if (this.engine.getGameRules().showNonAlphanumericCharacter &&
-            /^[a-z]+$/i.test(this.engine.word[this.position])) {
+        if (
+            this.engine.getGameRules().showNonAlphanumericCharacter &&
+            /^[a-z]+$/i.test(this.engine.word[this.position])
+        ) {
             this.reveal();
         }
     }
@@ -55,6 +61,10 @@ export class Case implements OnInit {
 
     public caseClass = () => {
         const res = ["case"];
+
+        if (this.revealed) {
+            return res.join(" ");
+        }
 
         res.push(this.active ? "active" : "inactive");
 
